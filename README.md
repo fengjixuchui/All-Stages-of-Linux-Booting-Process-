@@ -1,17 +1,18 @@
 ![image](https://raw.githubusercontent.com/nu11secur1ty/All-Stages-of-Linux-Booting-Process-/master/boot-process-chart.jpg)
 
 
-#All Stages of Linux Booting Process Explained
+# All Stages of Linux Booting Process Explained
+
 This article describes linux booting process in detail, what are the steps involved, which scripts are run, what configuration files are read and their order, from turning on the system till getting the login prompt.
 Although this article projects a general view of booting a Linux system, but some configuration files and commands can be Red Hat specific. 
 You can also download linux boot process pdf version for future reference.
-#1. BIOS Initialization
+# 1. BIOS Initialization
 BIOS, the Basic Input Output System is a firmware program that performs a very basic level of interaction with hardware. This is the first program that takes control when the computer is powered on.The BIOS performs a test on all the hardware component and peripherals called POST, the “Power On Self Test”. It initializes required hardware for booting.
 
 After POST executes successfully, BIOS looks for a boot device from a list of devices. Modern BIOSs allow you to configure this order of devices (sometimes called boot preference) that BIOS checks for booting. These boot devices can be any one of floppy drive, CDROM, hard drive, a network interface or other removable media (such as USB flash drive).
 
 The BIOS checks for the boot sector on the bootable device. Boot sector is the first physical sector on the storage device, and contains the code required for booting the machine.
-#2. The Master Boot Record
+# 2. The Master Boot Record
 In case of hard disks and many other mass storage media, the boot sector is MBR. MBR consists of 512 bytes at the first sector of the hard disk. It is important to note that MBR is not located inside any partition. MBR precedes the first partition. The layout of MBR is as follows:
 
 • First 446 bytes contain bootable code.
@@ -23,13 +24,17 @@ In case of hard disks and many other mass storage media, the boot sector is MBR.
 |=================|======|======|======|======|===|
 
 The first 446 bytes of MBR contain the code that locates the partition to boot from. The rest of booting process takes place from that partition. This partition contains a software program for booting the system called the 'bootloader'.
-#3. About GRUB
+# 3. About GRUB
 According to gnu.org, "A bootloader is the first software program that runs when a computer starts". GRUB or GRand Unified Bootloader is the bootloader program for Linux like operating systems. There are mainly two versions of Grub is available (Grub version 1 and 2). Now most linux ditros started using grub version 2. One main feature of grub is that it can be installed using linux image and no need for running operating system.
 
 Grub is a multi-stage bootloader (Stage1 ,Stage 1.5 and Stage 2). 3 stages for grub version 1 and grub version 2 is explained below.
-#Grub Version 1 stages
+
+--------------------------------------------------------------------------------------------------------------------------
+
+# Grub Version 1 stages
 Stage 1 can load Stage 2 directly, but it is normally set up to load Stage 1.5. GRUB Stage 1.5 is located in the first 30 kilobytes of hard disk immediately following the MBR and before the first partition. If this space is not available (Unusual partition table, special disk drivers, GPT or LVM disk) the install of Stage 1.5 will fail. The stage 1.5 image contains file system drivers. This enables stage 1.5 to directly load stage 2 from any known location in the filesystem, for example from /boot/grub. Stage 2 will then load the default configuration file and any other modules needed.
-#Grub Version 2 stages
+
+# Grub Version 2 stages
 Stage 1 -> boot.img is stored in the MBR (or optionally in any of the volume boot records) and addresses the next Stage by an LBA48 address (the 1024 cylinder boundary of GRUB legacy is omitted); at installation time it is configured to load the first sector of core.img
 
 Stage 1.5 -> core.img is by default written to the sectors between the MBR and the first partition, when this sectors are free and available. For legacy reasons, the first partition of a harddisc does not begin at sector 1 (counting begins with 0) but at sector 63 leaving a gap of 63 sectors of empty space, that is not part of any partition of file system and therefor not prone to any problems related with it. Once executed, core.img will load its configuration file and any other modules needed, particularly file system drivers; at installation time, it is generated from diskboot.img and configured to load stage 2.
@@ -37,7 +42,8 @@ Stage 1.5 -> core.img is by default written to the sectors between the MBR and t
 Refer at bottom of this page for boot process using grub version 2
 
 Stage 2 -> files belonging to stage 2 are all being held in the /boot/grub-directory, which is a sub-directory of /boot/ directory.
-#Grub Boot Stage Errors
+
+# Grub Boot Stage Errors
 ```
     Grub Stage 1 Errors
 
@@ -89,7 +95,7 @@ Here is a sample grub.conf:
 # root (hd0,0)
 # kernel /vmlinuz-version ro root=/dev/VolGroup00/LogVol00
 # initrd /initrd-version.img
-#boot=/dev/sda
+# boot=/dev/sda
 default=0
 timeout=5
 splashimage=(hd0,0)/grub/splash.xpm.gz
@@ -113,7 +119,8 @@ Corresponding to this menu entry, the first command, i.e. "root (hd0,0)" specifi
 The second command i.e. "kernel /vmlinuz-2.6.18-238.el5 ro root=/dev/VolGroup00/LogVol00" tells which kernel image to use (in this case vmlinuz-2.6.18-238.el5). The arguments to this command are 'ro' and 'root'. 'root' specifies the device on which root directory of the filesystem (i.e. / directory) is located; 'ro' means that this partition is to be mounted in read only mode (i.e. the kernel mounts the root partition in read only mode). Note that the partition for root filesystem and the partition on which this kernel image resides (i.e. boot partition) are different.
 
 The third command is the location of initrd. Before going into the details of what initrd is, let's look at a problem caused at the boot time.
-#The Chicken / Egg Module Problem and initrd
+
+# The Chicken / Egg Module Problem and initrd
 The kernel needs to mount the root filesystem (as specified in the second command above). This filesystem may be on some partition with one of the following capabilities:
 ```
 • Logical Volume Management
@@ -126,11 +133,14 @@ The Linux kernel does not have these features compiled into it. But they are pre
 The kernel and GRUB provide a solution through initrd, the initial RAM disk. It contains the modules needed to mount the filesystem, and only modules needed for that filesystem are included.
 
 GRUB also supports chainloading, the method used to pass control to other bootoader. Chainloading is used by GRUB to boot operating systems like windows. This can be checked in the above configuration file, under the title Windows XP Pro.
-#4. Kernel Initialization
+
+# 4. Kernel Initialization
 After GRUB stage 2, the location of kernel and necessary modules through initrd are known. Now the kernel is loaded into memory and initialized. The initrd image is compiled and mounted into the memory. It serves as a temporary root file system and helps kernel to boot properly without mounting any root file system. Now that all the drivers are loaded into memory, and kernel has booted, kernel mounts the root filesystem in read only mode, and starts the first process.
-#5. The init Process
+
+# 5. The init Process
 ‘init’ is the first process started by kernel (initialization process). It is parent of all processes. The PID (Process ID) of init process is always 1. This process persists till the computer halts. It is responsible for the whole state of system. The settings for this process are stored in its configuration file, /etc/inittab (system initialization table).Before diving deeper into the details of this file and proceeding any further with the boot process, let’s discuss about runlevels
-#6. Runlevels
+
+# 6. Runlevels
 Runlevel is the state in which a system boots. It can boot in a single user mode, multiuser mode, with networking, and with graphics etc. Following are the default runlevels defined by Linux:
 ```
 0: Halt or shutdown the system
@@ -219,7 +229,8 @@ Now let's look at some entries in this file. The first uncommented line, i.e. "i
 si::sysinit:/etc/rc.d/rc.sysinit
 ```
 This line tells init process to execute "/etc/rc.d/rc.sysinit" script. This is the first script executed by init during booting process.
-#7. Script rc.sysinit
+
+# 7. Script rc.sysinit
 When this script executes, it asks the user for interactive setup (Press 'I' to enter interactive startup). This script performs a lot of functions for the system that include:
 
 • Setting hostname
@@ -239,7 +250,7 @@ After this script has executed, the runlevel specific files are run, according t
 l3:3:wait:/etc/rc.d/rc 3
 ```
 There are directories corresponding to each runlevel under "/etc/rc.d" directory. According to this line, the scripts in /etc/rc.d/rc3.d directory are run. Let’s list the files in this directory. (Other directories like rc1.d, rc2.d ... have similar files in them).
-```
+```bash
 [root@redhat-server ~]# ls -l /etc/rc.d/rc3.d/
 total 304
 lrwxrwxrwx 1 root root 17 Jul 3 03:51 K01dnsmasq -> ../init.d/dnsmasq
@@ -284,6 +295,43 @@ lrwxrwxrwx 1 root root 21 Jul 3 03:51 S12restorecond -> ../init.d/restorecond
 lrwxrwxrwx 1 root root 16 Jul 3 03:51 S12syslog -> ../init.d/syslog
 lrwxrwxrwx 1 root root 18 Jul 3 03:49 S13cpuspeed -> ../init.d/cpuspeed
 ```
+# Ubuntu 19.10
+```bash
+lrwxrwxrwx 1 root root 29 дек  6  2018 K01apache-htcacheclean -> ../init.d/apache-htcacheclean
+lrwxrwxrwx 1 root root 27 окт 12  2018 K01speech-dispatcher -> ../init.d/speech-dispatcher
+lrwxrwxrwx 1 root root 15 окт 12  2018 S01acpid -> ../init.d/acpid
+lrwxrwxrwx 1 root root 17 окт 12  2018 S01anacron -> ../init.d/anacron
+lrwxrwxrwx 1 root root 17 дек  6  2018 S01apache2 -> ../init.d/apache2
+lrwxrwxrwx 1 root root 16 окт 12  2018 S01apport -> ../init.d/apport
+lrwxrwxrwx 1 root root 22 окт 12  2018 S01avahi-daemon -> ../init.d/avahi-daemon
+lrwxrwxrwx 1 root root 19 окт 12  2018 S01bluetooth -> ../init.d/bluetooth
+lrwxrwxrwx 1 root root 24 юли 24 16:31 S01cgroupfs-mount -> ../init.d/cgroupfs-mount
+lrwxrwxrwx 1 root root 26 окт 12  2018 S01console-setup.sh -> ../init.d/console-setup.sh
+lrwxrwxrwx 1 root root 14 окт 12  2018 S01cron -> ../init.d/cron
+lrwxrwxrwx 1 root root 14 окт 12  2018 S01cups -> ../init.d/cups
+lrwxrwxrwx 1 root root 22 окт 12  2018 S01cups-browsed -> ../init.d/cups-browsed
+lrwxrwxrwx 1 root root 14 окт 12  2018 S01dbus -> ../init.d/dbus
+lrwxrwxrwx 1 root root 16 юли 24 16:31 S01docker -> ../init.d/docker
+lrwxrwxrwx 1 root root 14 окт 12  2018 S01gdm3 -> ../init.d/gdm3
+lrwxrwxrwx 1 root root 21 окт 12  2018 S01grub-common -> ../init.d/grub-common
+lrwxrwxrwx 1 root root 20 окт 12  2018 S01irqbalance -> ../init.d/irqbalance
+lrwxrwxrwx 1 root root 20 окт 12  2018 S01kerneloops -> ../init.d/kerneloops
+lrwxrwxrwx 1 root root 16 ное 28  2018 S01kibana -> ../init.d/kibana
+lrwxrwxrwx 1 root root 23 фев 22  2019 S01lvm2-lvmpolld -> ../init.d/lvm2-lvmpolld
+lrwxrwxrwx 1 root root 15 ное 29  2018 S01mysql -> ../init.d/mysql
+lrwxrwxrwx 1 root root 18 окт 12  2018 S01plymouth -> ../init.d/plymouth
+lrwxrwxrwx 1 root root 15 окт 12  2018 S01rsync -> ../init.d/rsync
+lrwxrwxrwx 1 root root 17 окт 12  2018 S01rsyslog -> ../init.d/rsyslog
+lrwxrwxrwx 1 root root 15 окт 12  2018 S01saned -> ../init.d/saned
+lrwxrwxrwx 1 root root 23 окт 12  2018 S01spice-vdagent -> ../init.d/spice-vdagent
+lrwxrwxrwx 1 root root 13 дек  5  2018 S01ssh -> ../init.d/ssh
+lrwxrwxrwx 1 root root 20 юли 24 16:31 S01ubuntu-fan -> ../init.d/ubuntu-fan
+lrwxrwxrwx 1 root root 29 окт 12  2018 S01unattended-upgrades -> ../init.d/unattended-upgrades
+lrwxrwxrwx 1 root root 15 окт 12  2018 S01uuidd -> ../init.d/uuidd
+lrwxrwxrwx 1 root root 22 мар 29  2019 S01vmware-tools -> ../init.d/vmware-tools
+lrwxrwxrwx 1 root root 18 окт 12  2018 S01whoopsie -> ../init.d/whoopsie
+```
+
 Some files in this directory start with S and others with K. The files starting with S correspond to the scripts that are to be 'started' in that particular runlevel, and the ones with K correspond to the ones that are to be 'killed'. These files are just soft links to scripts under "/etc/rc.d/init/d" directory (One soft link points to "/etc/rc.local" which itself is a soft link to "/etc/rc.d/rc/local"). The scripts in "/etc/rc.d/init.d/" are daemons. Daemons are the processes that run in background and provide some kind of service, like http daemon (httpd) provides web service.
 
 After all these scripts have been executed, then finally "/etc/rc.local" script runs. If there is some command or script that you want to be executed at system startup, you can put it in this script.
